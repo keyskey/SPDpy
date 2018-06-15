@@ -4,6 +4,7 @@ import random as rnd
 import networkx as nx
 import matplotlib.pyplot as plt
 import csv
+import snapshot
 
 N = 10000              # Agent number
 n = int(np.sqrt(N))    # In case of lattice topology, n×n grid is generated
@@ -34,7 +35,7 @@ def network(agent_list):
     
     G = nx.grid_graph(dim = [n,n])             # Default Lattice has only 4 adges(vertical&horizontal), so adding 4 edges(diagonal)
     #G = nx.random_regular_graph(d, N)         # random_regular_graph(d,n)  d:degree, n:node number 
-    #G = nx.barabasi_albert_graph(n,m)         # barabasi_albert_graph(n,m)   n:node number, m: number of edges to rearange
+    #G = nx.barabasi_albert_graph(N,m)         # barabasi_albert_graph(n,m)   n:node number, m: number of edges to rearange
 
     # Add diagonal edge except for outer edge agent
     for i in range(1,n-1):
@@ -84,10 +85,10 @@ def network(agent_list):
 
     # Set neighbors to all agents
     for focal in agent_list:
-        focal.neighbors_id = list(G[int(int(focal.id)//n), int(int(focal.id)%n)])           
+        focal.neighbors_id = list(G[int(focal.id//n), int(focal.id%n)])           
 
         for neighbor in agent_list:
-            if (int(int(neighbor.id)//n), int(int(neighbor.id)%n)) in focal.neighbors_id:
+            if (int(neighbor.id//n), int(neighbor.id%n)) in focal.neighbors_id:
                 focal.neighbors.append(neighbor)    
     return G
 
