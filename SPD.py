@@ -164,40 +164,6 @@ def count(agent_list):
     Fc = num_c/N
     return Fc
 
-def snapshot(G, agent_list, t):
-    # Function for drawing snapshot of the spatial distribution of C/D agents
-    # Depending on the strategy, node can be labeled with the letter C/D
-    
-    for focal in agent_list:
-        if focal.strategy == C:
-            G.nodes[int(int(focal.id)//n), int(int(focal.id)%n)]['strategy'] = C             # Lattice
-            #G.nodes[int(focal.id)]['strategy'] = C                                          # Other topology
-
-        else:
-            G.nodes[int(int(focal.id)//n), int(int(focal.id)%n)]['strategy'] = D
-            #G.nodes[int(focal.id)]['strategy'] = D
-
-    def strategy(i,j):
-        if G.nodes[i,j]['strategy'] == C:
-            return 'C'
-        else:
-            return 'D'
-
-    def color(i,j):
-        if G.nodes[i,j]['strategy'] == C:
-            return 'blue'
-        else:
-            return 'red'
-
-    color = dict(((i, j), color(i,j)) for i,j in G.nodes())
-    pos = dict((n, n) for n in G.nodes())
-    labels = dict(((i, j), i*10+j) for i,j in G.nodes())
-    
-    nx.draw_networkx_edges(G, pos)
-    nx.draw_networkx_nodes(G, pos, node_color = list(color.values()), node_size = 10)
-    #nx.draw_networkx(G, pos = pos, labels =labels, node_color = list(color.values()))
-    plt.savefig('snapshot_t={}.png'.format(format(t, '.1f')))
-
 def main():
 
     agent_list = [Agent(id) for id in range(N)]
