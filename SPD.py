@@ -4,7 +4,7 @@ import random as rnd
 import networkx as nx
 import matplotlib.pyplot as plt
 import csv
-import snapshot
+from snapshot import snapshot
 
 N = 10000              # Agent number
 n = int(np.sqrt(N))    # In case of lattice topology, n×n grid is generated
@@ -85,11 +85,14 @@ def network(agent_list):
 
     # Set neighbors to all agents
     for focal in agent_list:
-        focal.neighbors_id = list(G[int(focal.id//n), int(focal.id%n)])           
-
+        focal.neighbors_id = list(G[int(focal.id//n), int(focal.id%n)])             # Lattice    
+        #focal.neighbors_id = list(G[focal.id])                                     # Other topology
+        
         for neighbor in agent_list:
-            if (int(neighbor.id//n), int(neighbor.id%n)) in focal.neighbors_id:
+            if (int(neighbor.id//n), int(neighbor.id%n)) in focal.neighbors_id:     # Lattice
+            #if neighbor.id in focal.neighbors_id:                                  # Other topology
                 focal.neighbors.append(neighbor)    
+                
     return G
 
 def initialize(agent_list, init_C):
