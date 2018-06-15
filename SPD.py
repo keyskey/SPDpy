@@ -4,20 +4,19 @@ import random as rnd
 import networkx as nx
 import matplotlib.pyplot as plt
 import csv
-import copy
 
+N = 10000              # Agent number
+n = int(np.sqrt(N))    # In case of lattice topology, n×n grid is generated
+kappa = 0.1            # Thermal coefficient for Pairwise Fermi update
+C = 1                  # C: Cooperation
+D = 0                  # D: Defection
 
-N = 10000
-n = int(np.sqrt(N))
-#kappa = 0.1
-C = 1
-D = 0
-
-num_play = 1000     # Total timestep in a single senario
-num_ens = 1         # Total senario in a single simulation for ensamble average
+num_play = 1000        # Number of total timestep in a single senario
+num_ens = 1            # Number of total episode in a single simulation for taking ensamble average
 
 class Agent:
-
+    # Define agent object
+    
     def __init__(self, id):
         self.id = id
         self.point = 0.0
@@ -31,54 +30,56 @@ class Agent:
 
    
 def network(agent_list):
-    # Generate network and fix neighbors
-    G = nx.grid_graph(dim = [n,n])    # Default Lattice is <k> = 4, so adding 4 edges and set periodic boundary here
-    #G = nx.random_regular_graph(d, N)               # random_regular_graph(d,n)  d:degree, n:node number 
-    #G = nx.barabasi_albert_graph(n,m)               # barabasi_albert_graph(n,m)   n:node number, m: number of edges to rearange
-        
+    # Generate network and set neighbors
+    
+    G = nx.grid_graph(dim = [n,n])             # Default Lattice has only 4 adges(vertical&horizontal), so adding 4 edges(diagonal)
+    #G = nx.random_regular_graph(d, N)         # random_regular_graph(d,n)  d:degree, n:node number 
+    #G = nx.barabasi_albert_graph(n,m)         # barabasi_albert_graph(n,m)   n:node number, m: number of edges to rearange
+
+    # Add diagonal edge except for outer edge agent
     for i in range(1,n-1):
         for j in range(1,n-1):
             G.add_edge((i,j), (i+1,j+1))
             G.add_edge((i,j), (i+1,j-1))
             G.add_edge((i,j), (i-1,j+1))
             G.add_edge((i,j), (i-1,j-1))
-
-    # j=0は左、左上、左下、下、右下
-    G.add_edge((0,0), (n-1,0))
-    G.add_edge((0,0), (n-1,0+1))
-    G.add_edge((0,0), (n-1,n-1))
-    G.add_edge((0,0), (0,n-1))
-    G.add_edge((0,0), (1,n-1))
-  
-    # j=n-1は左、左上、左下、右上
-    G.add_edge((0,n-1), (n-1,n-1))
-    G.add_edge((0,n-1), (n-1,0))
-    G.add_edge((0,n-1), (n-1,n-2))
-    G.add_edge((0,n-1), (0,0))
-
+            
+    # Add edge along i = 0, j=1~n-2
     for j in range(1,n-1):
-    # j=1~n-2は左、左上、左下
         G.add_edge((0,j), (n-1,j))
         G.add_edge((0,j), (n-1,j+1))
         G.add_edge((0,j), (n-1,j-1))
         G.add_edge((0,j), (1,j-1))
         G.add_edge((0,j), (1,j+1))
         
-    # i=n-1は右、右上、右下、下、左下
+    # Add edge along j=0, i=1~n-2
+    for i in range(1,n-1): 
+        G.add_edge((i,0), (i,n-1))
+        G.add_edge((i,0), (i-1,n-1))
+        G.add_edge((i,0), (i+1,n-1))
+        G.add_edge((i,0), (i+1,1))
+    
+    # Add edge along j=0
+    G.add_edge((0,0), (n-1,0))
+    G.add_edge((0,0), (n-1,0+1))
+    G.add_edge((0,0), (n-1,n-1))
+    G.add_edge((0,0), (0,n-1))
+    G.add_edge((0,0), (1,n-1))
+  
+    # Add edge along j=n-1
+    G.add_edge((0,n-1), (n-1,n-1))
+    G.add_edge((0,n-1), (n-1,0))
+    G.add_edge((0,n-1), (n-1,n-2))
+    G.add_edge((0,n-1), (0,0))
+    
+    # Add edge along i=n-1
     G.add_edge((n-1,0), (0,0))
     G.add_edge((n-1,0), (0,1))
     G.add_edge((n-1,0), (0,n-1))
     G.add_edge((n-1,0), (n-1,n-1))
     G.add_edge((n-1,0), (n-2,n-1))
-                
-    for i in range(1,n-1): 
-    # i=1~n-2は下、左下、右下の3つのみ
-        G.add_edge((i,0), (i,n-1))
-        G.add_edge((i,0), (i-1,n-1))
-        G.add_edge((i,0), (i+1,n-1))
-        G.add_edge((i,0), (i+1,1))
-
-    # 右端だけカバーできないので個別に
+           
+    # Upper right edge agent
     G.add_edge((n-1,n-2),(n-2,n-1))
 
     # Set neighbors to all agents
@@ -91,7 +92,8 @@ def network(agent_list):
     return G
 
 def initialize(agent_list, init_C):
-
+    # Initialize the strategy of all agents
+    
     for agent in agent_list:
         if agent.id in init_C:
             agent.strategy = C
@@ -99,30 +101,38 @@ def initialize(agent_list, init_C):
             agent.strategy = D
 
 def payoff(Dg, Dr, agent_list):
-    R = 1 
-    S = -Dr
-    T = 1+Dg
-    P = 0
+    # Caculate the payoff obtained in one timestep. The table below is the payoff matrix
+      | C | D |
+      ---------
+    C | R | S |
+      ---------
+    D | T | P |
+    
+    R = 1       # Reward
+    S = -Dr     # Sucker
+    T = 1+Dg    # Temptation
+    P = 0       # Punishment
 
     for focal in agent_list:
         focal.point = 0.0
        
         for neighbor in focal.neighbors:
       
-            if focal.strategy == C and neighbor.strategy == C:    # Reward
+            if focal.strategy == C and neighbor.strategy == C:    
                 focal.point += R 
             
-            if focal.strategy == C and neighbor.strategy == D:    # Sucker
+            if focal.strategy == C and neighbor.strategy == D:   
                 focal.point += S
       
-            if focal.strategy == D and neighbor.strategy == C:    # Temptation
+            if focal.strategy == D and neighbor.strategy == C:   
                 focal.point += T
 
-            if focal.strategy == D and neighbor.strategy == D:    # Punishment
+            if focal.strategy == D and neighbor.strategy == D:  
                 focal.point += P
                 
 def IM_update(agent_list):
-
+    # Strategy update by Imitation-Max rule
+    
     for focal in agent_list:
         points = [i.point for i in focal.neighbors]
         best = focal.neighbors[np.argmax(points)]
@@ -133,31 +143,31 @@ def IM_update(agent_list):
         focal.update_strategy()
 
 def PF_update(agent_list):
-
+    # Strategy update by Pairwise-Fermi rule
+    
     for focal in agent_list:
         opp = rnd.choice(focal.neighbors)
         if opp.strategy != focal.strategy:
-            opps = [i.point for i in opp.neighbors if i.strategy == opp.strategy]
-            opps.append(opp.point)
-            focals = [i.point for i in focal.neighbors if i.strategy == focal.strategy] 
-            focals.append(focal.point)
-            ave_focal = np.mean(opps)
-            ave_opp = np.mean(focals)
-            if rnd.random() <= 1/(1+np.exp((ave_focal-ave_opp)/kappa)):
+            if rnd.random() <= 1/(1+np.exp((focal.point - opp.point)/kappa)):
                focal.strategy = opp.strategy
 
+    for focal in agent_list:
+        focal.update_strategy()
  
 def count(agent_list):
+    # Count the number of cooperative agent and get the fraction of cooperation(=Fc)
+    
     num_c = 0
     for focal in agent_list:
         if focal.strategy == C:
             num_c += 1
-                
-    return num_c/N
+    Fc = num_c/N
+    return Fc
 
 def snapshot(G, agent_list, t):
-    # Function for drawing snapshot of C & D agents
-    # Depending on the strategy, node is labeled
+    # Function for drawing snapshot of the spatial distribution of C/D agents
+    # Depending on the strategy, node can be labeled with the letter C/D
+    
     for focal in agent_list:
         if focal.strategy == C:
             G.nodes[int(int(focal.id)//n), int(int(focal.id)%n)]['strategy'] = C             # Lattice
@@ -181,11 +191,11 @@ def snapshot(G, agent_list, t):
 
     color = dict(((i, j), color(i,j)) for i,j in G.nodes())
     pos = dict((n, n) for n in G.nodes())
-    #labels = dict(((i, j), i*10+j) for i,j in G.nodes())
+    labels = dict(((i, j), i*10+j) for i,j in G.nodes())
     
     nx.draw_networkx_edges(G, pos)
-    #nx.draw_networkx(G, pos = pos, labels =labels, node_color = list(color.values()))
     nx.draw_networkx_nodes(G, pos, node_color = list(color.values()), node_size = 10)
+    #nx.draw_networkx(G, pos = pos, labels =labels, node_color = list(color.values()))
     plt.savefig('snapshot_t={}.png'.format(format(t, '.1f')))
 
 def main():
@@ -199,12 +209,11 @@ def main():
         # Reset the seed of random number                                   
         rnd.seed()
 
-        # Determine initial C agent
+        # Determine initial C agent over one episode
         init_C = [id for id in rnd.sample(range(N), k= int(N/2))]
          
         # Setting for drawing Dg-Dr diagram
-        # Can be plotted by heatmap.py
-         
+        # Output file can be plotted with heatmap.py
         filename1 = 'output{}.csv'.format(ens)
         f1 = open(filename1, 'w')        
         header1 = ['Dg', 'Dr', 'Fraction of Cooperation']
@@ -215,8 +224,8 @@ def main():
         for Dr in np.arange(0, 1.1, 0.1):                        
             for Dg in np.arange(0, 1.1, 0.1):
 
-                # Setting for the output of Fc's time evolution
-                # Can be plotted by time_evolution.py
+                # Setting for drawing the time evolution of Fc
+                # Can be plotted with time_evolution.py
                 """
                 filename2 = 'time_evolution(episode{}).csv'.format(ens)     # When drawing time evolution of many episodes for the same Dg
                 #filename2 = 'time_evolution(Dg={}).csv'.format(Dg)         # When drawing time evolution on different Dg in a single episode 
@@ -225,12 +234,11 @@ def main():
                 writer2 = csv.writer(f2)
                 writer2.writerow(header2)
                 """
-                Fc = []
- 
+                
+                # Initialization
                 initialize(agent_list, init_C)
                 initFc = count(agent_list)
-                Fc.append(initFc)
-
+                Fc = [initFc]
                 print('Dg:{0}, Dr:{1}, Time:{2}, Fc:{3}'.format(format(Dg,'.1f'), format(Dr,'.1f'), 0, format(Fc[0],'.3f')))
                 #snapshot(G, agent_list, 0)
                 #writer2.writerow([0, format(Fc[0],'.3f')])    
@@ -244,28 +252,28 @@ def main():
                     print('Dg:{0}, Dr:{1}, Time:{2}, Fc:{3}'.format(format(Dg,'.1f'), format(Dr,'.1f'), t, format(Fc[t],'.3f')))
                     #writer2.writerow([t, format(Fc[t],'.3f')])
 
-                    #if t in [10*i for i in range(30)]:     # Take snapshot every 10 timestep 
+                    #if t in [10*i for i in range(100)]:     # Take snapshot every 10 timestep 
                         #snapshot(G, agent_list, t)
                      
                     # Following if statemants are the condition for finishing calculation
-                    if Fc[t] == 0 or Fc[t] == 1:
+                    if Fc[t] == 0 or Fc[t] == 1:    # If all agents are absorbed into C or D strategy
                         print('Dg:{0}, Dr:{1}, Time:{2}, Fc(0 or 1):{3}'.format(format(Dg,'.1f'), format(Dr,'.1f'), t, format(Fc[t],'.3f')))
                         writer1.writerow([format(Dg,'.1f'), format(Dr,'.1f'), format(Fc[t],'.3f')])
                         break
                     
-                    if t >= 100:
+                    if t >= 100:               # Convergence condition
                         if np.absolute(np.mean(Fc[t-100:t-1]) - Fc[t])/Fc[t] < 0.001:
                             print('Dg:{0}, Dr:{1}, Time:{2}, Fc(Converged):{3}'.format(format(Dg,'.1f'), format(Dr,'.1f'), t, format(Fc[t],'.3f')))
                             writer1.writerow([format(Dg,'.1f'), format(Dr,'.1f'), format(Fc[t],'.3f')])
                             break
                             
-                    if t == num_play:          # If not converged, calculate (num_play - 1) times and get answer avereged over past 100 timestep
+                    if t == num_play:          # If not converged, get Fc avereged over the past 100 timesteps
                         FcFin = np.mean(Fc[t-99:t])
                         print('Dg:{0}, Dr:{1}, Time:{2}, Fc(Final timestep):{3}'.format(format(Dg,'.1f'), format(Dr,'.1f'), t, format(FcFin,'.3f')))
                         writer1.writerow([format(Dg,'.1f'), format(Dr,'.1f'), format(FcFin,'.3f')])
                         break
                   
-                #snapshot(G, agent_list, t)      
+                #snapshot(G, agent_list, t)      # Take anap shot of final timestep
                 
         f1.close()
         #f2.close()
