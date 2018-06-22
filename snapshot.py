@@ -34,3 +34,5 @@ def snapshot(G, agent_list, t):
     nx.draw_networkx_edges(G, pos)
     nx.draw_networkx_nodes(G, pos, node_color = list(color.values()), node_size = 10)
     plt.savefig('snapshot_t={}.png'.format(format(t, '.1f')))
+    plt.close()
+    
