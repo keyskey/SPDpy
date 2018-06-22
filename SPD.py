@@ -105,12 +105,7 @@ def initialize(agent_list, init_C):
             agent.strategy = D
 
 def payoff(Dg, Dr, agent_list):
-    # Caculate the payoff obtained in one timestep. The table below is the payoff matrix
-      | C | D |
-      ---------
-    C | R | S |
-      ---------
-    D | T | P |
+    # Count the payoff based on payoff matrix
     
     R = 1       # Reward
     S = -Dr     # Sucker
@@ -140,8 +135,11 @@ def IM_update(agent_list):
     for focal in agent_list:
         points = [i.point for i in focal.neighbors]
         best = focal.neighbors[np.argmax(points)]
+        
         if focal.point < best.point:
             focal.next_strategy = best.strategy
+        else:
+            focal.next_strategy = focal.strategy
 
     for focal in agent_list:
         focal.update_strategy()
@@ -153,8 +151,11 @@ def PF_update(agent_list):
         opp = rnd.choice(focal.neighbors)
         if opp.strategy != focal.strategy:
             if rnd.random() <= 1/(1+np.exp((focal.point - opp.point)/kappa)):
-               focal.strategy = opp.strategy
-
+               focal.next_strategy = opp.strategy
+            else:
+               focal.next_strategy = focal.strategy
+        else:
+            focal.next_strategy = focal.strategy
     for focal in agent_list:
         focal.update_strategy()
  
@@ -191,8 +192,8 @@ def main():
         writer1.writerow(header1)
 
         # Dilemma strength loop
-        for Dr in np.arange(0, 1.1, 0.1):                        
-            for Dg in np.arange(0, 1.1, 0.1):
+        for Dr in np.arange(0, 1.1, 0.1):          # Stag-Hunt type dilemma              
+            for Dg in np.arange(0, 1.1, 0.1):      # Chicken type dilemma
 
                 # Setting for drawing the time evolution of Fc
                 # Can be plotted with time_evolution.py
@@ -222,24 +223,25 @@ def main():
                     print('Dg:{0}, Dr:{1}, Time:{2}, Fc:{3}'.format(format(Dg,'.1f'), format(Dr,'.1f'), t, format(Fc[t],'.3f')))
                     #writer2.writerow([t, format(Fc[t],'.3f')])
 
-                    #if t in [10*i for i in range(100)]:     # Take snapshot every 10 timestep 
+                    #if t in [10*i for i in range(num_play)]:     # Take snapshot every 10 timestep 
                         #snapshot(G, agent_list, t)
-                     
+                        
                     # Following if statemants are the condition for finishing calculation
-                    if Fc[t] == 0 or Fc[t] == 1:    # If all agents are absorbed into C or D strategy
-                        print('Dg:{0}, Dr:{1}, Time:{2}, Fc(0 or 1):{3}'.format(format(Dg,'.1f'), format(Dr,'.1f'), t, format(Fc[t],'.3f')))
+                    if Fc[t] == 0 or Fc[t] == 1:
+                        print("Dg:{:0.1f}, Dr:{:0.1f}, Time:{}, Fc(0 or 1):{:0.3f}".format(Dg, Dr, t, Fc[t]))
                         writer1.writerow([format(Dg,'.1f'), format(Dr,'.1f'), format(Fc[t],'.3f')])
                         break
-                    
-                    if t >= 100:               # Convergence condition
-                        if np.absolute(np.mean(Fc[t-100:t-1]) - Fc[t])/Fc[t] < 0.001:
-                            print('Dg:{0}, Dr:{1}, Time:{2}, Fc(Converged):{3}'.format(format(Dg,'.1f'), format(Dr,'.1f'), t, format(Fc[t],'.3f')))
+                        
+                    if t >= 100:
+                        if np.absolute(np.mean(Fc[t-100:t-1]) - Fc[t])/Fc[t] < 0.0005:
+                            print("Dg:{:0.1f}, Dr:{:0.1f}, Time:{}, Fc:{:0.3f}".format(Dg, Dr, t, Fc[t]))
                             writer1.writerow([format(Dg,'.1f'), format(Dr,'.1f'), format(Fc[t],'.3f')])
                             break
                             
-                    if t == num_play:          # If not converged, get Fc avereged over the past 100 timesteps
+                    if t == num_play+1:
+                        # If not converged, calculate (num_play - 1) times and get answer avereged over past 100 timestep
                         FcFin = np.mean(Fc[t-99:t])
-                        print('Dg:{0}, Dr:{1}, Time:{2}, Fc(Final timestep):{3}'.format(format(Dg,'.1f'), format(Dr,'.1f'), t, format(FcFin,'.3f')))
+                        print("Dg:{:0.1f}, Dr:{:0.1f}, Time:{}, Fc:{:0.3f}".format(Dg, Dr, t, FcFin))
                         writer1.writerow([format(Dg,'.1f'), format(Dr,'.1f'), format(FcFin,'.3f')])
                         break
                   
