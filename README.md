@@ -16,7 +16,7 @@ Depending on the topology and strategy update rule, you can see various Dg-Dr di
 |Imitation max strategy update on lattice|Pairwise-Fermi strategy update on BA-Scale Free network|
 |:---:|:---:|
 |<img src="https://user-images.githubusercontent.com/39644776/41786084-79b1138c-767f-11e8-9316-b81229a3dcdf.png" width="400px">|
-<img src="https://user-images.githubusercontent.com/39644776/41786092-7e3ee1d6-767f-11e8-95c3-6523d7392f32.png" width="400px"|
+<img src="https://user-images.githubusercontent.com/39644776/41786092-7e3ee1d6-767f-11e8-95c3-6523d7392f32.png" width="400px">|
 <br>
 
 <br>
