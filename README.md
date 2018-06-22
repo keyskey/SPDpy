@@ -11,11 +11,13 @@ $ python heatmap.py <br>
 <br>
 
 Depending on the topology and strategy update rule, you can see various Dg-Dr diagram.<br>
-|Imitation max strategy update on lattice|Pairwise-Fermi strategy update on BA-Scale Free network|
-|:---|:---|
-![figure_1](https://user-images.githubusercontent.com/39644776/41786084-79b1138c-767f-11e8-9316-b81229a3dcdf.png "Imitation max strategy update on lattice")
-![figure_1](https://user-images.githubusercontent.com/39644776/41786092-7e3ee1d6-767f-11e8-95c3-6523d7392f32.png "Pairwise-Fermi strategy update on BA-Scale Free network")
+<br>
 
+|Imitation max strategy update on lattice|Pairwise-Fermi strategy update on BA-Scale Free network|
+|:---:|:---:|
+|![figure_1](https://user-images.githubusercontent.com/39644776/41786084-79b1138c-767f-11e8-9316-b81229a3dcdf.png)|
+![figure_2](https://user-images.githubusercontent.com/39644776/41786092-7e3ee1d6-767f-11e8-95c3-6523d7392f32.png)|
+<br>
 
 <br>
 Network topology can be selected from these three types.
