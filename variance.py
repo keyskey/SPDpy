@@ -4,8 +4,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from copy import deepcopy
 
+plt.rcParams['font.size'] = 20
+plt.rcParams['figure.figsize'] = 20,20
+
 num_ens = 100
 
+"""
+Create ensemble averaged dataframe(df_ensembled)
+"""
 df_list = []
 
 for i in range(1, num_ens + 1):
@@ -18,12 +24,12 @@ for df in df_list[1:]:
     df_ensembled['Fraction of Cooperation'] += df['Fraction of Cooperation']
 
 df_ensembled['Fraction of Cooperation'] =  df_ensembled['Fraction of Cooperation']/num_ens   
-df_ensembled_pivot = df_ensembled.pivot('Dg','Dr', 'Fraction of Cooperation')
 mu = df_ensembled['Fraction of Cooperation']
-#print(mu)
 
-plt.rcParams['font.size'] = 20
-#plt.rcParams['figure.figsize'] = 20,20
+
+"""
+Calculate the variance over 100 episodes
+"""
 df_list2 = deepcopy(df_list)
 
 for df in df_list2:
@@ -47,8 +53,8 @@ sns.heatmap(df_variance_pivot,
             square = True,
             xticklabels = tick,
             yticklabels = tick)           #cbar_kws={"orientation": "horizontal"}
+
 plt.gca().invert_yaxis()
 plt.tight_layout()
 plt.savefig('variance.png')
 plt.show()
-
