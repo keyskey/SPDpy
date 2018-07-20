@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue May 15 14:36:19 2018
-
-@author: rte28
-"""
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -12,10 +5,10 @@ import matplotlib.pyplot as plt
 plt.tick_params(labelsize=16)
 
 ax = plt.subplot(1,1,1)
-colors = ['b', 'r', 'y', 'g', 'm', 'c', 'k', 'violet', 'darkviolet', 'orange', 'lime']    # エピソードごとにグラフの色を変える
+colors = ['b', 'r', 'y', 'g', 'm', 'c', 'k', 'violet', 'darkviolet', 'orange', 'lime']  # color list
 
-for Dg in np.arange(0.0, 1.1, 0.1):
-    cindex = int(Dg*10)
+for cindex, Dg in enumerate(np.arange(0.0, 1.1, 0.1)):
+    #cindex = int(Dg*10)
     df = pd.read_csv('time_evolution(Dg={}).csv'.format(format(Dg, '.1f')))
     ax.scatter(df['time'], df['Fraction of Cooperation'], s = 7, c = colors[cindex], label='Dg=Dr={}'.format(format(Dg, '.1f'))) 
     ax.set_ylim([0, 1.0])
@@ -27,5 +20,5 @@ for Dg in np.arange(0.0, 1.1, 0.1):
     ax.legend(loc='upper right')                      
 
 plt.tight_layout()
-#plt.savefig('time_evolution')
+plt.savefig('Dgloop.png')
 plt.show()
