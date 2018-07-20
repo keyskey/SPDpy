@@ -23,15 +23,15 @@ df_ensembled_pivot = df_ensembled.pivot('Dg','Dr', 'Fraction of Cooperation')
 tick = [0.0, "", 0.2, "", 0.4, "", 0.6, "", 0.8, "", 1.0]
 sns.heatmap(df_ensembled_pivot, 
             vmin = 0.0, vmax = 1.0, 
-            annot = False, 
+            annot = True, 
             cbar = False,
-            cmap = "binary",
+            cmap = "jet",
             square = True,
             xticklabels = tick,
             yticklabels = tick)
 
 plt.gca().invert_yaxis()
 plt.tight_layout()
-#plt.title("Ensemble Average of 100 Realizations")
-plt.savefig('ens_def_gray.png')
+plt.title("Ensemble Average of 100 Realizations")
+plt.savefig('ensemble.png')
 plt.show()
