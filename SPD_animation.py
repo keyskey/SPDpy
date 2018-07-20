@@ -5,7 +5,6 @@ import glob
 from PIL import Image, ImageDraw
 import matplotlib.animation as animation
 import re
-#import os
 
 def numericalSort(value):
     numbers = re.compile(r'(\d+)')
@@ -13,7 +12,6 @@ def numericalSort(value):
     parts[1::2] = map(int, parts[1::2])
     return parts
 
-#os.chdir('/home/rte28/Desktop/SPD/Lattice/PF/')
 picList=sorted(glob.glob('*.png'), key=numericalSort)
 
 images = []
