@@ -161,11 +161,8 @@ def PF_update(agent_list):
 def count(agent_list):
     # Count the number of cooperative agent and get the fraction of cooperation(=Fc)
     
-    num_c = 0
-    for focal in agent_list:
-        if focal.strategy == C:
-            num_c += 1
-    Fc = num_c/N
+    Fc = len(list(filter(lambda agent: agent.strategy == C, agent_list)))/N
+    
     return Fc
 
 def main():
