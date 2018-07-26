@@ -216,7 +216,7 @@ def main():
                     IM_update(agent_list)
                     #PF_update(agent_list)
                     Fc.append(count(agent_list))
-                    print('Dg:{0}, Dr:{1}, Time:{2}, Fc:{3}'.format(format(Dg,'.1f'), format(Dr,'.1f'), t, format(Fc[t],'.3f')))
+                    print('Dg:{:0.1f}, Dr:{:0.1f}, Time:{}, Fc:{:0.3f}'.format(Dg, Dr, t, Fc[t]))
                     #writer2.writerow([t, format(Fc[t],'.3f')])
 
                     #if t in [10*i for i in range(num_play)]:     # Take snapshot every 10 timestep 
