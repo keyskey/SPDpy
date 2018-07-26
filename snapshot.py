@@ -1,6 +1,9 @@
+import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 
+N = 10000
+n = int(np.sqrt(N))
 C = 1
 D = 0
 
@@ -33,6 +36,9 @@ def snapshot(G, agent_list, t):
 
     nx.draw_networkx_edges(G, pos)
     nx.draw_networkx_nodes(G, pos, node_color = list(color.values()), node_size = 10)
+    plt.title('t={}'.format(t), fontsize=40)
+    plt.xticks([])
+    plt.yticks([])
     plt.savefig('snapshot_t={}.png'.format(format(t, '.1f')))
     plt.close()
     
