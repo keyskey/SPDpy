@@ -206,7 +206,7 @@ def main():
                 initialize(agent_list, init_C)
                 initFc = count(agent_list)
                 Fc = [initFc]
-                print('Dg:{0}, Dr:{1}, Time:{2}, Fc:{3}'.format(format(Dg,'.1f'), format(Dr,'.1f'), 0, format(Fc[0],'.3f')))
+                print('Dg:{:0.1f}, Dr:{:0.1f}, Time:{}, Fc:{:0.3f}'.format(Dg, Dr, 0, Fc[0]))
                 #snapshot(G, agent_list, 0)
                 #writer2.writerow([0, format(Fc[0],'.3f')])    
 
