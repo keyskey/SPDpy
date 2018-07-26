@@ -12,7 +12,7 @@ C = 1                  # C: Cooperation
 D = 0                  # D: Defection
 
 num_play = 1000        # Number of total timestep in a single senario
-num_ens = 1            # Number of total episode in a single simulation for taking ensamble average
+num_ens = 1            # Number of total episode in a single simulation for taking ensemble average
 
 class Agent:
     # Define agent object
