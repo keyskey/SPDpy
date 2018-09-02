@@ -5,7 +5,7 @@ import networkx as nx
 import csv
 from snapshot import snapshot
 
-N = 10000              # Agent number
+N = 100              # Agent number
 n = int(np.sqrt(N))    # In case of lattice topology, n×n grid is generated
 kappa = 0.1            # Thermal coefficient for Pairwise Fermi update
 C = 1                  # C: Cooperation
@@ -23,12 +23,7 @@ class Agent:
         self.strategy = D
         self.next_strategy = None 
         self.neighbors = []
-        self.neighbors_id = None        
 
-    def update_strategy(self):
-        self.strategy = self.next_strategy
-
-   
 def network(agent_list):
     # Generate network and set neighbors
     
@@ -84,12 +79,12 @@ def network(agent_list):
 
     # Set neighbors to all agents
     for focal in agent_list:
-        focal.neighbors_id = list(G[int(focal.id//n), int(focal.id%n)])             # Lattice    
-        #focal.neighbors_id = list(G[focal.id])                                     # Other topology
+        neighbors_id = list(G[int(focal.id//n), int(focal.id%n)])             # Lattice    
+        #neighbors_id = list(G[focal.id])                                     # Other topology
         
         for neighbor in agent_list:
-            if (int(neighbor.id//n), int(neighbor.id%n)) in focal.neighbors_id:     # Lattice
-            #if neighbor.id in focal.neighbors_id:                                  # Other topology
+            if (int(neighbor.id//n), int(neighbor.id%n)) in neighbors_id:     # Lattice
+            #if neighbor.id in neighbors_id:                                  # Other topology
                 focal.neighbors.append(neighbor)    
                 
     return G
@@ -97,11 +92,11 @@ def network(agent_list):
 def initialize(agent_list, init_C):
     # Initialize the strategy of all agents
     
-    for agent in agent_list:
-        if agent.id in init_C:
-            agent.strategy = C
+    for focal in agent_list:
+        if focal.id in init_C:
+            focal.strategy = C
         else:
-            agent.strategy = D
+            focal.strategy = D
 
 def payoff(Dg, Dr, agent_list):
     # Count the payoff based on payoff matrix
@@ -140,23 +135,21 @@ def IM_update(agent_list):
         else:
             focal.next_strategy = focal.strategy
 
-    for focal in agent_list:
-        focal.update_strategy()
-
 def PF_update(agent_list):
     # Strategy update by Pairwise-Fermi rule
     
     for focal in agent_list:
-        opp = rnd.choice(focal.neighbors)
-        if opp.strategy != focal.strategy:
-            if rnd.random() <= 1/(1+np.exp((focal.point - opp.point)/kappa)):
-               focal.next_strategy = opp.strategy
-            else:
-               focal.next_strategy = focal.strategy
+        opp = rnd.choice(focal.neighbors)    # Decide opponent agent
+        if opp.strategy != focal.strategy and rnd.random() <= 1/(1+np.exp((focal.point - opp.point)/kappa)):
+            focal.next_strategy = opp.strategy
         else:
             focal.next_strategy = focal.strategy
-    for focal in agent_list:
-        focal.update_strategy()
+
+def update_strategy(agent_list):
+    # Insert next_strategy into strategy
+
+    for focal in agent_list: 
+        focal.strategy = focal.next_strategy
  
 def count(agent_list):
     # Count the number of cooperative agent and get the fraction of cooperation(=Fc)
@@ -181,7 +174,7 @@ def main():
          
         # Setting for drawing Dg-Dr diagram
         # Output file can be plotted with heatmap.py
-        filename1 = 'output{}.csv'.format(ens)
+        filename1 = f'output{ens}.csv'
         f1 = open(filename1, 'w')        
         header1 = ['Dg', 'Dr', 'Fraction of Cooperation']
         writer1 = csv.writer(f1)
@@ -192,53 +185,52 @@ def main():
             for Dg in np.arange(0, 1.1, 0.1):      # Chicken type dilemma
 
                 # Setting for drawing the time evolution of Fc
-                # Can be plotted with time_evolution.py
-                """
-                filename2 = 'time_evolution(episode{}).csv'.format(ens)     # When drawing time evolution of many episodes for the same Dg
-                #filename2 = 'time_evolution(Dg={}).csv'.format(Dg)         # When drawing time evolution on different Dg in a single episode 
+                # Can be plotted with time_evolution_dilemma__loop.py and time_evolution.py
+                #filename2 = 'time_evolution_episode{ens}.csv'                  # When drawing time evolution of many episodes for the same Dg
+                filename2 = f'time_evolution_Dg_{Dg:.1f}_Dr_{Dr:.1f}.csv'       # When drawing time evolution on different Dg in a single episode 
                 f2 = open(filename2, 'w')
                 header2 = ['time', 'Fraction of Cooperation']
                 writer2 = csv.writer(f2)
                 writer2.writerow(header2)
-                """
-                
+
                 # Initialization
                 initialize(agent_list, init_C)
                 initFc = count(agent_list)
                 Fc = [initFc]
-                print('Dg:{:0.1f}, Dr:{:0.1f}, Time:{}, Fc:{:0.3f}'.format(Dg, Dr, 0, Fc[0]))
-                #snapshot(G, agent_list, 0)
-                #writer2.writerow([0, format(Fc[0],'.3f')])    
+                print(f'Dg:{Dg:.1f}, Dr:{Dr:.1f}, Time:{1}, Fc:{Fc[0]:.3f}')
+                #snapshot(G, agent_list, 1)
+                writer2.writerow([1, f'{Fc[0]:.3f}'])    
 
        	        # Time evolution loop
-                for t in range(1, num_play+1):
+                for t in range(2, num_play+1):
                     payoff(Dg, Dr, agent_list)
                     IM_update(agent_list)
                     #PF_update(agent_list)
+                    update_strategy(agent_list)
                     Fc.append(count(agent_list))
-                    print('Dg:{:0.1f}, Dr:{:0.1f}, Time:{}, Fc:{:0.3f}'.format(Dg, Dr, t, Fc[t]))
-                    #writer2.writerow([t, format(Fc[t],'.3f')])
+                    print(f'Dg:{Dg:.1f}, Dr:{Dr:.1f}, Time:{t}, Fc:{Fc[t-1]:.3f}')
+                    writer2.writerow([t, f'{Fc[t-1]:.3f}'])
 
                     #if t in [10*i for i in range(num_play)]:     # Take snapshot every 10 timestep 
                         #snapshot(G, agent_list, t)
                         
                     # Following if statemants are the condition for finishing calculation
-                    if Fc[t] == 0 or Fc[t] == 1:
-                        print("Dg:{:0.1f}, Dr:{:0.1f}, Time:{}, Fc(0 or 1):{:0.3f}".format(Dg, Dr, t, Fc[t]))
-                        writer1.writerow([format(Dg,'.1f'), format(Dr,'.1f'), format(Fc[t],'.3f')])
+                    if Fc[t-1] == 0 or Fc[t-1] == 1:
+                        print(f'Dg:{Dg:.1f}, Dr:{Dr:.1f}, Time:{t}, Fc(0 or 1):{Fc[t-1]: .3f}')
+                        writer1.writerow([f'{Dg:.1f}', f'{Dr:.1f}', f'{Fc[t-1]:.3f}'])
                         break
                         
-                    if t >= 100:
-                        if np.absolute(np.mean(Fc[t-100:t-1]) - Fc[t])/Fc[t] < 0.0005:
-                            print("Dg:{:0.1f}, Dr:{:0.1f}, Time:{}, Fc:{:0.3f}".format(Dg, Dr, t, Fc[t]))
-                            writer1.writerow([format(Dg,'.1f'), format(Dr,'.1f'), format(Fc[t],'.3f')])
+                    if t > 100:
+                        if np.absolute(np.mean(Fc[t-101:t-2]) - Fc[t-1])/Fc[t-1] < 0.001:
+                            print(f'Dg:{Dg:.1f}, Dr:{Dr:.1f}, Time:{t}, Fc(Converged):{Fc[t-1]: .3f}')
+                            writer1.writerow([f'{Dg:.1f}', f'{Dr:.1f}', f'{Fc[t-1]:.3f}'])
                             break
                             
-                    if t == num_play+1:
+                    if t == num_play:
                         # If not converged, calculate (num_play - 1) times and get answer avereged over past 100 timestep
-                        FcFin = np.mean(Fc[t-99:t])
-                        print("Dg:{:0.1f}, Dr:{:0.1f}, Time:{}, Fc:{:0.3f}".format(Dg, Dr, t, FcFin))
-                        writer1.writerow([format(Dg,'.1f'), format(Dr,'.1f'), format(FcFin,'.3f')])
+                        FcFin = np.mean(Fc[t-100:t-1])
+                        print(f'Dg:{Dg:.1f}, Dr:{Dr:.1f}, Time:{t}, Fc(Final timestep):{FcFin:.3f}')
+                        writer1.writerow([f'{Dg:.1f}', f'{Dr:.1f}', f'{FcFin:.3f}'])
                         break
                   
                 #snapshot(G, agent_list, t)      # Take anap shot of final timestep

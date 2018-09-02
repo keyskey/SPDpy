@@ -2,7 +2,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
  
-num_episode = 10    # Number of simulation episodes
+num_episode = 1    # Number of simulation episodes
 
 fig = plt.figure()
 

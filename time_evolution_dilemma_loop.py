@@ -8,9 +8,8 @@ ax = plt.subplot(1,1,1)
 colors = ['b', 'r', 'y', 'g', 'm', 'c', 'k', 'violet', 'darkviolet', 'orange', 'lime']  # color list
 
 for cindex, Dg in enumerate(np.arange(0.0, 1.1, 0.1)):
-    #cindex = int(Dg*10)
-    df = pd.read_csv('time_evolution(Dg={}).csv'.format(format(Dg, '.1f')))
-    ax.scatter(df['time'], df['Fraction of Cooperation'], s = 7, c = colors[cindex], label='Dg=Dr={}'.format(format(Dg, '.1f'))) 
+    df = pd.read_csv(f'time_evolution_Dg_{Dg:.1f}_Dr_{Dg:.1f}.csv')
+    ax.scatter(df['time'], df['Fraction of Cooperation'], s = 15, c = colors[cindex], label = f'Dg={Dg:.1f}, Dr={Dg:.1f}') 
     ax.set_ylim([0, 1.0])
     ax.set_xscale('log')
     ax.set_xticks([1,10,100,1000])
