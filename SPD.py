@@ -5,7 +5,7 @@ import networkx as nx
 import csv
 from snapshot import snapshot
 
-N = 100              # Agent number
+N = 10000              # Agent number
 n = int(np.sqrt(N))    # In case of lattice topology, n×n grid is generated
 kappa = 0.1            # Thermal coefficient for Pairwise Fermi update
 C = 1                  # C: Cooperation
