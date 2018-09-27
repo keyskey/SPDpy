@@ -14,9 +14,8 @@ D = 0                  # D: Defection
 num_play = 1000        # Number of total timestep in a single senario
 num_ens = 1            # Number of total episode in a single simulation for taking ensemble average
 
+# Agent object
 class Agent:
-    # Define agent object
-    
     def __init__(self, id):
         self.id = id
         self.point = 0.0
@@ -24,9 +23,8 @@ class Agent:
         self.next_strategy = None 
         self.neighbors = []
 
+# Generate network and set neighbors
 def network(agent_list):
-    # Generate network and set neighbors
-    
     G = nx.grid_graph(dim = [n,n])             # Default Lattice has only 4 adges(vertical&horizontal), so adding 4 edges(diagonal)
     #G = nx.random_regular_graph(d, N)         # random_regular_graph(d,n)  d:degree, n:node number 
     #G = nx.barabasi_albert_graph(N,m)         # barabasi_albert_graph(n,m)   n:node number, m: number of edges to rearange
@@ -89,18 +87,16 @@ def network(agent_list):
                 
     return G
 
+# Initialize the strategy of all agents
 def initialize(agent_list, init_C):
-    # Initialize the strategy of all agents
-    
     for focal in agent_list:
         if focal.id in init_C:
             focal.strategy = C
         else:
             focal.strategy = D
 
-def payoff(Dg, Dr, agent_list):
-    # Count the payoff based on payoff matrix
-    
+# Count the payoff based on payoff matrix
+def payoff(Dg, Dr, agent_list): 
     R = 1       # Reward
     S = -Dr     # Sucker
     T = 1+Dg    # Temptation
@@ -110,7 +106,6 @@ def payoff(Dg, Dr, agent_list):
         focal.point = 0.0
        
         for neighbor in focal.neighbors:
-      
             if focal.strategy == C and neighbor.strategy == C:    
                 focal.point += R 
             
@@ -122,10 +117,9 @@ def payoff(Dg, Dr, agent_list):
 
             if focal.strategy == D and neighbor.strategy == D:  
                 focal.point += P
-                
-def IM_update(agent_list):
-    # Strategy update by Imitation-Max rule
-    
+
+# Decide next strategy by Imitation-Max rule
+def IM_update(agent_list): 
     for focal in agent_list:
         points = [i.point for i in focal.neighbors]
         best = focal.neighbors[np.argmax(points)]
@@ -135,9 +129,8 @@ def IM_update(agent_list):
         else:
             focal.next_strategy = focal.strategy
 
-def PF_update(agent_list):
-    # Strategy update by Pairwise-Fermi rule
-    
+# Decide next strategy by Pairwise-Fermi rule
+def PF_update(agent_list): 
     for focal in agent_list:
         opp = rnd.choice(focal.neighbors)    # Decide opponent agent
         if opp.strategy != focal.strategy and rnd.random() <= 1/(1+np.exp((focal.point - opp.point)/kappa)):
@@ -145,25 +138,24 @@ def PF_update(agent_list):
         else:
             focal.next_strategy = focal.strategy
 
+# Insert next_strategy into strategy
 def update_strategy(agent_list):
-    # Insert next_strategy into strategy
-
     for focal in agent_list: 
         focal.strategy = focal.next_strategy
- 
+
+# Count the number of cooperative agent and get the fraction of cooperation(=Fc)
 def count(agent_list):
-    # Count the number of cooperative agent and get the fraction of cooperation(=Fc)
-    
     Fc = len(list(filter(lambda agent: agent.strategy == C, agent_list)))/N
     
     return Fc
 
+# Whole procedure of the simulation
 def main():
 
     agent_list = [Agent(id) for id in range(N)]
     G = network(agent_list)
 
-    # Ensamble loop
+    # Ensemble loop
     for ens in range(1, num_ens+1):
 
         # Reset the seed of random number                                   
@@ -185,7 +177,7 @@ def main():
             for Dg in np.arange(0, 1.1, 0.1):      # Chicken type dilemma
 
                 # Setting for drawing the time evolution of Fc
-                # Can be plotted with time_evolution_dilemma__loop.py and time_evolution.py
+                # Can be plotted with time_evolution_dilemma_loop.py and time_evolution.py
                 #filename2 = 'time_evolution_episode{ens}.csv'                  # When drawing time evolution of many episodes for the same Dg
                 filename2 = f'time_evolution_Dg_{Dg:.1f}_Dr_{Dr:.1f}.csv'       # When drawing time evolution on different Dg in a single episode 
                 f2 = open(filename2, 'w')
@@ -211,7 +203,7 @@ def main():
                     print(f'Dg:{Dg:.1f}, Dr:{Dr:.1f}, Time:{t}, Fc:{Fc[t-1]:.3f}')
                     writer2.writerow([t, f'{Fc[t-1]:.3f}'])
 
-                    #if t in [10*i for i in range(num_play)]:     # Take snapshot every 10 timestep 
+                    #if t in [10*i for i in range(num_play)]:     # Take snapshots every 10 timesteps 
                         #snapshot(G, agent_list, t)
                         
                     # Following if statemants are the condition for finishing calculation
@@ -233,7 +225,7 @@ def main():
                         writer1.writerow([f'{Dg:.1f}', f'{Dr:.1f}', f'{FcFin:.3f}'])
                         break
                   
-                #snapshot(G, agent_list, t)      # Take anap shot of final timestep
+                #snapshot(G, agent_list, t)      # Take the snap shot of final timestep
                 
         f1.close()
         #f2.close()
