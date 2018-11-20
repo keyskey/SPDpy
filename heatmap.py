@@ -10,7 +10,7 @@ fig = plt.figure()
 if num_episode > 1:
     for i in range(1, num_episode+1):
         df = pd.read_csv('output{}.csv'.format(i)) 
-        df_pivot = df.pivot('Dg','Dr', 'Fraction of Cooperation')
+        df_pivot = df.pivot('Dg','Dr', 'Fc')
       
         ax = fig.add_subplot(2, 5, i)
         sns.heatmap(df_pivot, 
@@ -28,7 +28,7 @@ if num_episode > 1:
 # If you have a result of one episodes
 else:
     df = pd.read_csv('output1.csv') 
-    df_pivot = df.pivot('Dg','Dr', 'Fraction of Cooperation')
+    df_pivot = df.pivot('Dg','Dr', 'Fc')
     sns.heatmap(df_pivot, 
                 vmin = 0.0, vmax = 1.0, 
                 annot = True, 
