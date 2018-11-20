@@ -15,10 +15,10 @@ for i in range(1, num_ens + 1):
 df_ensembled = df_list[0]
 
 for df in df_list[1:]:
-    df_ensembled['Fraction of Cooperation'] += df['Fraction of Cooperation']
+    df_ensembled['Fc'] += df['Fc']
 
-df_ensembled['Fraction of Cooperation'] =  df_ensembled['Fraction of Cooperation']/num_ens   
-df_ensembled_pivot = df_ensembled.pivot('Dg','Dr', 'Fraction of Cooperation')
+df_ensembled['Fc'] =  df_ensembled['Fc']/num_ens   
+df_ensembled_pivot = df_ensembled.pivot('Dg','Dr', 'Fc')
 
 tick = [0.0, "", 0.2, "", 0.4, "", 0.6, "", 0.8, "", 1.0]
 sns.heatmap(df_ensembled_pivot, 
