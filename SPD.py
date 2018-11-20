@@ -4,41 +4,61 @@ import numpy as np
 import random as rnd
 import networkx as nx
 import csv
-from snapshot import snapshot
+import matplotlib.pyplot as plt
 
 class Agent:
-    """Define agent object"""
     
     def __init__(self, id):
         self.id = id
         self.point = 0.0
         self.strategy = "D"
-        self.next_strategy = None 
+        self.next_strategy = None
         self.neighbors = []
 
 class Society(Agent):
-    """
-    Store Agents and check the fraction of cooperative agents 
-    """ 
-    def __init__(self, population_size, average_degree):
+    
+    def __init__(self, population_size, average_degree, network_type):
+        """
+        network_type has several options, give following network type as string;
+            1. lattice
+            2. ring
+            3. ER-random
+            4. Complete (Not recommended!!! Too heavy!!!)
+            4. Watts Strogatz(Small World)
+            5. BA-SF
+        """
+        
         rearange_edges = int(average_degree*0.5)
         self.size = population_size
-        self.use_lattice = True   # Set True when using lattice as a social network
+        self.network_type = network_type
         
-        if self.use_lattice == True:
-            self.topology = self.generate_lattice(self.size)
-        else:
+        if self.network_type == "lattice":
+            self.topology = self.generate_lattice(population_size)
+            
+        if self.network_type == "ring":
+            self.topology = nx.circulant_graph(population_size, [1])
+            
+        if self.network_type == "ER":
+            self.topology = nx.random_regular_graph(average_degree, population_size)
+        
+        if self.network_type == "Complete":
+            self.topology = nx.complete_graph(population_size)
+            
+        if self.network_type == "WS":
+            self.topology = nx.watts_strogatz_graph(population_size, average_degree, 0.5)
+        
+        if self.network_type == "BA-SF":
             self.topology = nx.barabasi_albert_graph(self.size, rearange_edges)
             
         self.agents = self.generate_agents()
     
-    def generate_lattice(self, num_node):
+    def generate_lattice(self, population_size):
         """
         Default Lattice has only 4 adges(vertical&horizontal), so adding 4 edges in diagonal direction and 
         Set periodic boundary condition
         """
 
-        n = int(np.sqrt(num_node))    # n×n lattice is generated
+        n = int(np.sqrt(population_size))    # n×n lattice is generated
         G = nx.grid_graph(dim = [n,n]) 
 
         # Add diagonal edge except for outer edge agent
@@ -92,43 +112,90 @@ class Society(Agent):
     def connect_agents(self, agents):
         """Link all agents based on the underlying network topology"""
         
-        if self.use_lattice == True:
-            n = int(np.sqrt(self.size))        
+        if self.network_type == "lattice":
+            n = int(np.sqrt(self.size))      
             for focal in agents:
                 neighbors_id = list(self.topology[int(focal.id//n), int(focal.id%n)])
                 for (x,y) in neighbors_id:
                     nb_id = int(x*n+y)
-                    focal.neighbors.append(agents[nb_id])
-        else:
+                    focal.neighbors.append(agents[nb_id])   
+
+        # When using another topology
+        else:    
             for focal in agents:
                 neighbors_id = list(self.topology[focal.id])
                 for nb_id in neighbors_id:
                     focal.neighbors.append(agents[nb_id])
-
+                
         return agents
 
     def generate_agents(self):
         """Generate a list of agents connected with network"""
         
         agents = [Agent(id) for id in range(self.size)]
-        connected_agents = self.connect_agents(agents)
+        agents = self.connect_agents(agents)
         
-        return connected_agents
+        return agents
     
     def count_fraction(self):
         """Calculate the fraction of cooperative agents"""
         
         Fc = len([agent for agent in self.agents if agent.strategy == "C"])/self.size
     
-        return Fc        
+        return Fc
+
+    def snapshot(self, t):
+        if self.network_type == "lattice":
+            n = int(np.sqrt(self.size))
+            for focal in self.agents:
+                if focal.strategy == "C":
+                    self.topology.nodes[int(focal.id//n), int(focal.id%n)]["strategy"] = "C"
+                else:
+                    self.topology.nodes[int(focal.id//n), int(focal.id%n)]["strategy"] = "D"                
+                
+            def color_for_lattice(i,j):
+                if self.topology.nodes[i,j]["strategy"] == "C":
+                    return 'cyan'
+                else:
+                    return 'pink'
+
+            color = dict(((i, j), color_for_lattice(i,j)) for i,j in self.topology.nodes())
+            pos = dict((n, n) for n in self.topology.nodes())   
+        
+        else:
+            for focal in self.agents:
+                if focal.strategy == "C":
+                    self.topology.nodes[focal.id]["strategy"] = "C"
+                else:
+                    self.topology.nodes[focal.id]["strategy"] = "D"
+
+            def color(i):
+                if self.topology.nodes[i]["strategy"] == "C":
+                    return 'cyan'
+                else:
+                    return 'pink'
+            
+            color =  dict((i, color(i)) for i in self.topology.nodes())
+            if self.network_type == "ring":
+                pos = nx.circular_layout(self.topology)
+
+            else:
+                pos = nx.spring_layout(self.topology)
+                
+        nx.draw_networkx_edges(self.topology, pos)
+        nx.draw_networkx_nodes(self.topology, pos, node_color = list(color.values()), node_size = 10)
+        plt.title('t={}'.format(t), fontsize=20)
+        plt.xticks([])
+        plt.yticks([])
+        plt.savefig('snapshot_t={}.png'.format(format(t, '.1f')))
+        plt.close()
         
 class Decision:
-    """Functions for game theoretical decision making"""
     
-    def __init__(self, Dg, Dr):
+    def __init__(self, Dg, Dr, beta):
         self.Dg = Dg
         self.Dr = Dr
-        self.kappa = 0.1  # Thermal coefficient for Pairwise Fermi update
+        self.kappa = 1/beta   # Thermal coefficient for Pairwise Fermi update
 
     def choose_initC(num_agent):
         """Return the ID list of initial C agent"""
@@ -158,7 +225,6 @@ class Decision:
 
         for focal in agents:
             focal.point = 0.0
-
             for neighbor in focal.neighbors:
                 if focal.strategy == "C" and neighbor.strategy == "C":    
                     focal.point += R 
@@ -190,7 +256,7 @@ class Decision:
         
         for focal in agents:
             opp = rnd.choice(focal.neighbors)   # Choose opponent from neighbors
-            if opp.strategy != focal.strategy and rnd.random() <= 1/(1+np.exp((focal.point - opp.point)/self.kappa)):
+            if rnd.random() <= 1/(1+np.exp((focal.point - opp.point)/self.kappa)):
                 focal.next_strategy = opp.strategy
             else:
                 focal.next_strategy = focal.strategy
@@ -200,8 +266,8 @@ class Decision:
     def update_strategy(self, agents):
         """Insert next_strategy into current strategy"""
         
-        agents = self.Imitation_Max(self.payoff(agents))
-
+        #agents = self.Imitation_Max(self.payoff(agents))
+        agents = self.PW_Fermi(self.payoff(agents))
         for focal in agents:
             focal.strategy = focal.next_strategy
 
@@ -210,83 +276,73 @@ class Decision:
 def main():
     num_agent = 10000      # Agent number
     average_degree = 8     # Average degree of social network
-    num_play = 1000        # Number of total timestep in a single episode
+    num_play = 1000        # Number of maximum timestep in a single episode
     num_ens = 100          # Number of total episode in a single simulation for taking ensemble average
-
-    society = Society(num_agent, average_degree)
     
-    # Ensemble loop
-    for ens in range(1, num_ens+1):
+    society = Society(num_agent, average_degree, "lattice")
+
+    for ens in range(num_ens):
+        rnd.seed()
+        init_C = Decision.choose_initC(society.size)
         
-        # Setting for drawing Dg-Dr diagram
-        # Output file can be plotted with heatmap.py
-        filename1 = f"output{ens}.csv"
-        f1 = open(filename1, "w")        
-        header1 = ["Dg", "Dr", "Fraction of Cooperation"]
+        # Setting for drawing Dg-Dr phase diagram
+        # Can be plotted by heatmap.py
+        filename1 = f"phase_diagram{ens}.csv"
+        f1 = open(filename1, "w")      
+        header1 = ["Dg", "Dr", "Fc"]
         writer1 = csv.writer(f1)
         writer1.writerow(header1)
-
-        # Reset the seed of random number                                   
-        rnd.seed()
-
-        # Determine initial C agent over one single episode
-        init_C = Decision.choose_initC(num_agent)
-
-        # Dilemma strength loop
-        for Dr in np.arange(0, 1.1, 0.1):          # Stag-Hunt type dilemma              
-            for Dg in np.arange(0, 1.1, 0.1):      # Chicken type dilemma
-  
+        
+        for Dr in np.arange(0, 1.1, 0.1):
+            for Dg in np.arange(0, 1.1, 0.1):
+                
                 # Setting for drawing the time evolution of Fc
                 # Can be plotted with time_evolution_dilemma_loop.py and time_evolution.py
-                """
-                filename2 = f"time_evolution_Dg_{Dg:.1f}_Dr_{Dr:.1f}.csv"       # When drawing time evolution on different Dg in a single episode 
+                filename2 = f"time_evolution_Dg_{Dg:.1f}_Dr_{Dr:.1f}.csv"   # When drawing time evolution on different Dg in a single episode 
                 f2 = open(filename2, "w")
-                header2 = ["time", "Fraction of Cooperation"]
+                header2 = ["time", "Fc"]
                 writer2 = csv.writer(f2)
                 writer2.writerow(header2)
-                """
-                
-                ######################### Initialization #####################
-                decision = Decision(Dg, Dr)
+            
+                ############################## Initialization ###############################
+                beta = 10
+                decision = Decision(Dg, Dr, beta)
                 society.agents = decision.init_strategy(society.agents, init_C)
                 initFc = society.count_fraction()
                 Fc = [initFc]
-                print(f"Dg:{Dg:.1f}, Dr:{Dr:.1f}, Time:{0}, Fc:{Fc[0]:.3f}")
-                #snapshot(society.topology, society.agents, 1)
-                #writer2.writerow([1, f'{Fc[0]:.3f}'])
-                ####################### End Initialization ####################
+                print(f"Episode:{ens}, Dr:{Dr:.2f}, Dg:{Dg:.2f}, Time:{0}, Fc:{Fc[0]:.3f}")
+                #society.snapshot(0)
+                writer2.writerow([1, f'{Fc[0]:.3f}'])
+                ############################# END Initialization ############################
                 
-                ####################### Time evolution loop ###################
+                ############################# Time evolution loop ###############################
                 for t in range(1, num_play+1):
                     society.agents = decision.update_strategy(society.agents)
                     Fc.append(society.count_fraction())
-                    print(f"Dg:{Dg:.1f}, Dr:{Dr:.1f}, Time:{t}, Fc:{Fc[t]:.3f}")
-                    #writer2.writerow([t, f"{Fc[t-1]:.3f}"])
-
-                    #if t in [10*i for i in range(num_play)]:     # Take snapshots every 10 timesteps 
-                        #snapshot(society.topology, society.agents, t)
+                    print(f"Episode:{ens}, Dr:{Dr:.1f}, Dg:{Dg:.1f}, Time:{t}, Fc:{Fc[t]:.3f}")
+                    #society.snapshot(t)
+                    writer2.writerow([t, f"{Fc[t-1]:.3f}"])
                     
                     """Following if statements are convergence conditions"""
                     if Fc[t] == 0 or Fc[t] == 1:
-                        print(f"Dg:{Dg:.1f}, Dr:{Dr:.1f}, Time:{t}, Fc(0 or 1):{Fc[t]: .3f}")
-                        writer1.writerow([f"{Dg:.1f}", f"{Dr:.1f}", f"{Fc[t-1]:.3f}"])
+                        print(f"Dr:{Dr:.1f}, Dg:{Dg:.1f}, Time:{t}, Fc(0 or 1):{Fc[t]:.3f}")
+                        writer1.writerow([f"{Dr:.1f}", f"{Dg:.1f}", f"{Fc[t-1]:.3f}"])
                         break
 
                     if t >= 100:
                         if np.absolute(np.mean(Fc[t-100:t-1]) - Fc[t])/Fc[t] < 0.001:
-                            print(f"Dg:{Dg:.1f}, Dr:{Dr:.1f}, Time:{t}, Fc(Converged):{Fc[t]: .3f}")
-                            writer1.writerow([f"{Dg:.1f}", f"{Dr:.1f}", f"{Fc[t-1]:.3f}"])
+                            print(f"Dr:{Dr:.1f}, Dg:{Dg:.1f}, Time:{t}, Fc(Converged):{Fc[t]: .3f}")
+                            writer1.writerow([f"{Dr:.1f}", f"{Dg:.1f}", f"{Fc[t-1]:.3f}"])
                             break
 
                     if t == num_play:
                         FcFin = np.mean(Fc[t-99:t])
-                        print(f"Dg:{Dg:.1f}, Dr:{Dr:.1f}, Time:{t}, Fc(Final timestep):{FcFin:.3f}")
-                        writer1.writerow([f"{Dg:.1f}", f"{Dr:.1f}", f"{FcFin:.3f}"])
+                        print(f"Dr:{Dr:.1f}, Dg:{Dg:.1f}, Time:{t}, Fc(Final timestep):{FcFin:.3f}")
+                        writer1.writerow([f"{Dr:.1f}", f"{Dg:.1f}", f"{FcFin:.3f}"])
                         break
-                ##################### End time evolution loop ##################
+                 ########################### END Time evolution loop ############################
                 
-                #snapshot(society.topology, society.agents, t)      # Take the snapshot of final timestep
-                #f2.close()
-        f1.close()
+                f1.close()
+                f2.close()
 if __name__ == '__main__':
     main()
