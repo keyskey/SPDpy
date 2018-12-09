@@ -13,7 +13,7 @@ class Agent:
         self.point = 0.0
         self.strategy = "D"
         self.next_strategy = None
-        self.neighbors = []
+        self.neighbors_id = []
 
 class Society(Agent):
     
@@ -108,7 +108,7 @@ class Society(Agent):
         G.add_edge((n-1,n-2),(n-2,n-1))
         
         return G
-        
+
     def connect_agents(self, agents):
         """Link all agents based on the underlying network topology"""
         
@@ -118,14 +118,14 @@ class Society(Agent):
                 neighbors_id = list(self.topology[int(focal.id//n), int(focal.id%n)])
                 for (x,y) in neighbors_id:
                     nb_id = int(x*n+y)
-                    focal.neighbors.append(agents[nb_id])   
+                    focal.neighbors_id.append(nb_id)
 
         # When using another topology
         else:    
             for focal in agents:
                 neighbors_id = list(self.topology[focal.id])
                 for nb_id in neighbors_id:
-                    focal.neighbors.append(agents[nb_id])
+                    focal.neighbors_id.append(nb_id)
                 
         return agents
 
@@ -197,18 +197,18 @@ class Decision:
         self.Dr = Dr
         self.kappa = 1/beta   # Thermal coefficient for Pairwise Fermi update
 
-    def choose_initC(num_agent):
+    def choose_init_c(num_agent):
         """Return the ID list of initial C agent"""
 
-        init_C = [id for id in rnd.sample(range(num_agent), k= int(num_agent/2))]
+        init_c = [id for id in rnd.sample(range(num_agent), k= int(num_agent/2))]
 
-        return init_C
+        return init_c
 
-    def init_strategy(self, agents, init_C):
+    def init_strategy(self, agents, init_c):
         """Initialize the strategy of agents"""
 
         for focal in agents:
-            if focal.id in init_C:
+            if focal.id in init_c:
                 focal.strategy = "C"
             else:
                 focal.strategy = "D"
@@ -225,25 +225,25 @@ class Decision:
 
         for focal in agents:
             focal.point = 0.0
-            for neighbor in focal.neighbors:
-                if focal.strategy == "C" and neighbor.strategy == "C":    
+            for neighbor_id in focal.neighbors_id:
+                if focal.strategy == "C" and agents[neighbor_id].strategy == "C":    
                     focal.point += R 
-                if focal.strategy == "C" and neighbor.strategy == "D":   
+                if focal.strategy == "C" and agents[neighbor_id].strategy == "D":   
                     focal.point += S
-                if focal.strategy == "D" and neighbor.strategy == "C":   
+                if focal.strategy == "D" and agents[neighbor_id].strategy == "C":   
                     focal.point += T
-                if focal.strategy == "D" and neighbor.strategy == "D":  
+                if focal.strategy == "D" and agents[neighbor_id].strategy == "D":  
                     focal.point += P
 
         return agents
 
     def Imitation_Max(self, agents):
         """Decide next strategy by Imitation-Max rule"""
-        
         for focal in agents:
-            points = [neighbor.point for neighbor in focal.neighbors]
-            best_neighbor = focal.neighbors[np.argmax(points)]
-        
+            neighbors_point = [agents[neighbor_id].point for neighbor_id in focal.neighbors_id]
+            best_neighbor_id = focal.neighbors_id[np.argmax(neighbors_point)]
+            best_neighbor = agents[best_neighbor_id]
+
             if focal.point < best_neighbor.point:
                 focal.next_strategy = best_neighbor.strategy
             else:
@@ -255,8 +255,9 @@ class Decision:
         """Decide next strategy by Pairwise-Fermi rule"""
         
         for focal in agents:
-            opp = rnd.choice(focal.neighbors)   # Choose opponent from neighbors
-            if rnd.random() <= 1/(1+np.exp((focal.point - opp.point)/self.kappa)):
+            opp_id = rnd.choice(focal.neighbors_id)   # Choose opponent from neighbors
+            opp = agents[opp_id]
+            if opp.strategy != focal.strategy and rnd.random() < 1/(1+np.exp((focal.point - opp.point)/kappa)):
                 focal.next_strategy = opp.strategy
             else:
                 focal.next_strategy = focal.strategy
@@ -278,12 +279,13 @@ def main():
     average_degree = 8     # Average degree of social network
     num_play = 1000        # Number of maximum timestep in a single episode
     num_ens = 100          # Number of total episode in a single simulation for taking ensemble average
+    beta = 10              # Inverse temperature(1/kappa) for Pairwise-Fermi update
     
     society = Society(num_agent, average_degree, "lattice")
 
     for ens in range(num_ens):
         rnd.seed()
-        init_C = Decision.choose_initC(society.size)
+        init_c = Decision.choose_init_c(society.size)
         
         # Setting for drawing Dg-Dr phase diagram
         # Can be plotted by heatmap.py
@@ -305,9 +307,8 @@ def main():
                 writer2.writerow(header2)
             
                 ############################## Initialization ###############################
-                beta = 10
                 decision = Decision(Dg, Dr, beta)
-                society.agents = decision.init_strategy(society.agents, init_C)
+                society.agents = decision.init_strategy(society.agents, init_c)
                 initFc = society.count_fraction()
                 Fc = [initFc]
                 print(f"Episode:{ens}, Dr:{Dr:.2f}, Dg:{Dg:.2f}, Time:{0}, Fc:{Fc[0]:.3f}")
@@ -342,7 +343,7 @@ def main():
                         break
                  ########################### END Time evolution loop ############################
                 
-                f1.close()
                 f2.close()
+        f1.close()
 if __name__ == '__main__':
     main()
