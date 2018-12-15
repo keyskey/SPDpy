@@ -11,7 +11,7 @@ class Agent:
     def __init__(self, id):
         self.id = id
         self.point = 0.0
-        self.strategy = "D"
+        self.strategy = None
         self.next_strategy = None
         self.neighbors_id = []
 
@@ -140,9 +140,9 @@ class Society(Agent):
     def count_fraction(self):
         """Calculate the fraction of cooperative agents"""
         
-        Fc = len([agent for agent in self.agents if agent.strategy == "C"])/self.size
+        fc = len([agent for agent in self.agents if agent.strategy == "C"])/self.size
     
-        return Fc
+        return fc
 
     def snapshot(self, t):
         if self.network_type == "lattice":
@@ -200,7 +200,7 @@ class Decision:
     def choose_init_c(num_agent):
         """Return the ID list of initial C agent"""
 
-        init_c = [id for id in rnd.sample(range(num_agent), k= int(num_agent/2))]
+        init_c = rnd.sample(range(num_agent), k= int(num_agent/2))
 
         return init_c
 
@@ -215,7 +215,7 @@ class Decision:
 
         return agents
 
-    def payoff(self, agents):
+    def count_payoff(self, agents):
         """Count the payoff based on payoff matrix"""
 
         R = 1            # Reward
@@ -226,13 +226,14 @@ class Decision:
         for focal in agents:
             focal.point = 0.0
             for neighbor_id in focal.neighbors_id:
-                if focal.strategy == "C" and agents[neighbor_id].strategy == "C":    
+                neighbor = agents[neighbor_id]
+                if focal.strategy == "C" and neighbor.strategy == "C":    
                     focal.point += R 
-                if focal.strategy == "C" and agents[neighbor_id].strategy == "D":   
+                elif focal.strategy == "C" and neighbor.strategy == "D":   
                     focal.point += S
-                if focal.strategy == "D" and agents[neighbor_id].strategy == "C":   
+                elif focal.strategy == "D" and neighbor.strategy == "C":   
                     focal.point += T
-                if focal.strategy == "D" and agents[neighbor_id].strategy == "D":  
+                elif focal.strategy == "D" and neighbor.strategy == "D":  
                     focal.point += P
 
         return agents
@@ -267,8 +268,8 @@ class Decision:
     def update_strategy(self, agents):
         """Insert next_strategy into current strategy"""
         
-        #agents = self.Imitation_Max(self.payoff(agents))
-        agents = self.PW_Fermi(self.payoff(agents))
+        #agents = self.Imitation_Max(self.count_payoff(agents))
+        agents = self.PW_Fermi(self.count_payoff(agents))
         for focal in agents:
             focal.strategy = focal.next_strategy
 
