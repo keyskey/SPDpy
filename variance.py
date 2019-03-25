@@ -4,18 +4,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from copy import deepcopy
 
-plt.rcParams['font.size'] = 20
-plt.rcParams['figure.figsize'] = 20,20
-
-num_ens = 100
+num_ens = 2
 
 """
 Create ensemble averaged dataframe(df_ensembled)
 """
 df_list = []
 
-for i in range(1, num_ens + 1):
-    df = pd.read_csv('output{}.csv'.format(i)) 
+for i in range(num_ens):
+    df = pd.read_csv(f"phase_diagram{i}.csv") 
     df_list.append(df)
 
 df_ensembled = df_list[0]
@@ -43,16 +40,14 @@ for df in df_list2[1:]:
 df_variance['Fc'] = df_variance['Fc']/(num_ens-1)
 df_variance_pivot = df_variance.pivot('Dg', 'Dr', 'Fc')
 
-tick = [0.0, "", 0.2, "", 0.4, "", 0.6, "", 0.8, "", 1.0]
-
 sns.heatmap(df_variance_pivot,
             vmin = 0, vmax = 0.3,
             annot = False, 
             cbar = True,
             cmap = "jet",
             square = True,
-            xticklabels = tick,
-            yticklabels = tick)           #cbar_kws={"orientation": "horizontal"}
+            xticklabels = 2,
+            yticklabels = 2)           #cbar_kws={"orientation": "horizontal"}
 
 plt.gca().invert_yaxis()
 plt.tight_layout()
