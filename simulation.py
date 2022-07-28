@@ -7,7 +7,7 @@ from agent import Agent
 
 class Simulation:
     
-    def __init__(self, population, average_degree, network_type):
+    def __init__(self, population, average_degree, network_type,display_transparency):
         """
         network_type has several options, give following network type as string;
             1. lattice
@@ -22,7 +22,7 @@ class Simulation:
         self.network = None
         self.agents = self.__generate_agents(population, average_degree)
         self.initial_cooperators = self.__choose_initial_cooperators()
-
+        self.display_transparency = display_transparency
     def __generate_agents(self, population, average_degree):
         if self.network_type == "lattice":
             self.network = self.__generate_lattice(population)
@@ -245,12 +245,15 @@ class Simulation:
             else:
                 pos = nx.spring_layout(self.network)
                 
-        nx.draw_networkx_edges(self.network, pos)
-        nx.draw_networkx_nodes(self.network, pos, node_color = list(color.values()), node_size = 10)
+        nx.draw_networkx_edges(self.network, pos,alpha=self.display_transparency)
+        nx.draw_networkx_nodes(self.network, pos, node_color = list(color.values()), node_size = 10,alpha=self.display_transparency)
         plt.title('t={}'.format(timestep), fontsize=20)
         plt.xticks([])
         plt.yticks([])
-        plt.savefig(f"snapshot_t={timestep}.png")
+        if self.display_transparency==1:
+            plt.savefig(f"snapshot_t={timestep}.png",transparent=False)
+        else:
+            plt.savefig(f"snapshot_t={timestep}.png",transparent=True)
         plt.close()
 
     def one_episode(self, episode):
@@ -264,5 +267,5 @@ class Simulation:
                 fc_converged = self.__play_game(episode, Dg, Dr)
                 new_result = pd.DataFrame([[format(Dg, '.1f'), format(Dr, '.1f'), fc_converged]], columns = ['Dg', 'Dr', 'Fc'])
                 result = result.append(new_result)
-        
+        self.__take_snapshot(1)
         result.to_csv(f"phase_diagram{episode}.csv")
